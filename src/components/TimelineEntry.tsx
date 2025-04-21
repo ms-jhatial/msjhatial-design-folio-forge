@@ -9,6 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface TimelineEntryProps {
   entry: TimelineEntryType;
@@ -17,6 +18,7 @@ interface TimelineEntryProps {
 
 const TimelineEntry: React.FC<TimelineEntryProps> = ({ entry, className = '' }) => {
   const [showModal, setShowModal] = useState(false);
+  const isMobile = useIsMobile();
 
   const formattedDate = (() => {
     try {
@@ -29,7 +31,7 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({ entry, className = '' }) 
   return (
     <>
       <div 
-        className={`group relative overflow-hidden rounded-lg shadow-md hover-scale ${className}`}
+        className={`group relative overflow-hidden rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer ${className}`}
         onClick={() => setShowModal(true)}
       >
         <div className="aspect-video w-full overflow-hidden">
@@ -46,25 +48,28 @@ const TimelineEntry: React.FC<TimelineEntryProps> = ({ entry, className = '' }) 
       </div>
       
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-2xl w-[90vw]">
+        <DialogContent className={cn("max-w-2xl", isMobile ? "w-[95vw] p-4" : "w-[90vw]")}>
           <DialogHeader>
             <DialogTitle>{entry.title}</DialogTitle>
             <DialogDescription>{formattedDate}</DialogDescription>
           </DialogHeader>
           
-          <div className="mt-4">
+          <div className="mt-4 flex flex-col gap-4">
             <img
               src={entry.image}
               alt={entry.title}
               className="w-full rounded-md object-contain max-h-[50vh]"
             />
             
-            <p className="mt-4 text-muted-foreground">{entry.description}</p>
+            <p className="text-muted-foreground">{entry.description}</p>
           </div>
         </DialogContent>
       </Dialog>
     </>
   );
 };
+
+// Helper function from shadcn components
+const cn = (...args: any[]) => args.filter(Boolean).join(' ');
 
 export default TimelineEntry;

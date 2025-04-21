@@ -116,39 +116,60 @@ class StorageService {
   
   // Get current user data
   getCurrentUser(): UserData | null {
-    const currentUserJson = localStorage.getItem(this.storageKey);
-    return currentUserJson ? JSON.parse(currentUserJson) : null;
+    try {
+      const currentUserJson = localStorage.getItem(this.storageKey);
+      return currentUserJson ? JSON.parse(currentUserJson) : null;
+    } catch (error) {
+      console.error('Error getting user data from localStorage:', error);
+      return null;
+    }
   }
   
   // Create a new user
   createUser(username: string, email: string): UserData {
-    const newUser: User = {
-      id: `user-${Date.now()}`,
-      username,
-      email,
-      createdAt: Date.now()
-    };
-    
-    const userData: UserData = {
-      user: newUser,
-      projects: sampleData.projects,
-      timeline: sampleData.timeline,
-      about: sampleData.about,
-      layoutPreferences: sampleData.layoutPreferences
-    };
-    
-    localStorage.setItem(this.storageKey, JSON.stringify(userData));
-    return userData;
+    try {
+      const newUser: User = {
+        id: `user-${Date.now()}`,
+        username,
+        email,
+        createdAt: Date.now()
+      };
+      
+      const userData: UserData = {
+        user: newUser,
+        projects: sampleData.projects,
+        timeline: sampleData.timeline,
+        about: sampleData.about,
+        layoutPreferences: sampleData.layoutPreferences
+      };
+      
+      localStorage.setItem(this.storageKey, JSON.stringify(userData));
+      return userData;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new Error('Failed to create user');
+    }
   }
   
   // Save user data
   saveUserData(userData: UserData): void {
-    localStorage.setItem(this.storageKey, JSON.stringify(userData));
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(userData));
+      console.log('User data saved to localStorage');
+    } catch (error) {
+      console.error('Error saving user data to localStorage:', error);
+      throw new Error('Failed to save user data');
+    }
   }
   
   // Clear user data (logout)
   clearUserData(): void {
-    localStorage.removeItem(this.storageKey);
+    try {
+      localStorage.removeItem(this.storageKey);
+    } catch (error) {
+      console.error('Error clearing user data from localStorage:', error);
+      throw new Error('Failed to clear user data');
+    }
   }
   
   // Helper to generate unique IDs
@@ -158,129 +179,174 @@ class StorageService {
   
   // Save a new project
   saveProject(project: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>): Project {
-    const userData = this.getCurrentUser();
-    if (!userData) throw new Error('No user logged in');
-    
-    const newProject: Project = {
-      ...project,
-      id: this.generateId(),
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    
-    userData.projects.unshift(newProject);
-    this.saveUserData(userData);
-    
-    return newProject;
+    try {
+      const userData = this.getCurrentUser();
+      if (!userData) throw new Error('No user logged in');
+      
+      const newProject: Project = {
+        ...project,
+        id: this.generateId(),
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      userData.projects.unshift(newProject);
+      this.saveUserData(userData);
+      
+      return newProject;
+    } catch (error) {
+      console.error('Error saving project:', error);
+      throw error;
+    }
   }
   
   // Update an existing project
   updateProject(projectId: string, updates: Partial<Omit<Project, 'id' | 'createdAt'>>): Project {
-    const userData = this.getCurrentUser();
-    if (!userData) throw new Error('No user logged in');
-    
-    const projectIndex = userData.projects.findIndex(p => p.id === projectId);
-    if (projectIndex === -1) throw new Error('Project not found');
-    
-    const updatedProject = {
-      ...userData.projects[projectIndex],
-      ...updates,
-      updatedAt: Date.now()
-    };
-    
-    userData.projects[projectIndex] = updatedProject;
-    this.saveUserData(userData);
-    
-    return updatedProject;
+    try {
+      const userData = this.getCurrentUser();
+      if (!userData) throw new Error('No user logged in');
+      
+      const projectIndex = userData.projects.findIndex(p => p.id === projectId);
+      if (projectIndex === -1) throw new Error('Project not found');
+      
+      const updatedProject = {
+        ...userData.projects[projectIndex],
+        ...updates,
+        updatedAt: Date.now()
+      };
+      
+      userData.projects[projectIndex] = updatedProject;
+      this.saveUserData(userData);
+      
+      return updatedProject;
+    } catch (error) {
+      console.error('Error updating project:', error);
+      throw error;
+    }
   }
   
   // Delete a project
   deleteProject(projectId: string): void {
-    const userData = this.getCurrentUser();
-    if (!userData) throw new Error('No user logged in');
-    
-    userData.projects = userData.projects.filter(p => p.id !== projectId);
-    this.saveUserData(userData);
+    try {
+      const userData = this.getCurrentUser();
+      if (!userData) throw new Error('No user logged in');
+      
+      userData.projects = userData.projects.filter(p => p.id !== projectId);
+      this.saveUserData(userData);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      throw error;
+    }
   }
   
   // Timeline entry methods
   saveTimelineEntry(entry: Omit<TimelineEntry, 'id' | 'createdAt'>): TimelineEntry {
-    const userData = this.getCurrentUser();
-    if (!userData) throw new Error('No user logged in');
-    
-    const newEntry: TimelineEntry = {
-      ...entry,
-      id: this.generateId(),
-      createdAt: Date.now()
-    };
-    
-    userData.timeline.unshift(newEntry);
-    this.saveUserData(userData);
-    
-    return newEntry;
+    try {
+      const userData = this.getCurrentUser();
+      if (!userData) throw new Error('No user logged in');
+      
+      const newEntry: TimelineEntry = {
+        ...entry,
+        id: this.generateId(),
+        createdAt: Date.now()
+      };
+      
+      userData.timeline.unshift(newEntry);
+      this.saveUserData(userData);
+      
+      return newEntry;
+    } catch (error) {
+      console.error('Error saving timeline entry:', error);
+      throw error;
+    }
   }
   
   updateTimelineEntry(entryId: string, updates: Partial<Omit<TimelineEntry, 'id' | 'createdAt'>>): TimelineEntry {
-    const userData = this.getCurrentUser();
-    if (!userData) throw new Error('No user logged in');
-    
-    const entryIndex = userData.timeline.findIndex(e => e.id === entryId);
-    if (entryIndex === -1) throw new Error('Timeline entry not found');
-    
-    const updatedEntry = {
-      ...userData.timeline[entryIndex],
-      ...updates
-    };
-    
-    userData.timeline[entryIndex] = updatedEntry;
-    this.saveUserData(userData);
-    
-    return updatedEntry;
+    try {
+      const userData = this.getCurrentUser();
+      if (!userData) throw new Error('No user logged in');
+      
+      const entryIndex = userData.timeline.findIndex(e => e.id === entryId);
+      if (entryIndex === -1) throw new Error('Timeline entry not found');
+      
+      const updatedEntry = {
+        ...userData.timeline[entryIndex],
+        ...updates
+      };
+      
+      userData.timeline[entryIndex] = updatedEntry;
+      this.saveUserData(userData);
+      
+      return updatedEntry;
+    } catch (error) {
+      console.error('Error updating timeline entry:', error);
+      throw error;
+    }
   }
   
   deleteTimelineEntry(entryId: string): void {
-    const userData = this.getCurrentUser();
-    if (!userData) throw new Error('No user logged in');
-    
-    userData.timeline = userData.timeline.filter(e => e.id !== entryId);
-    this.saveUserData(userData);
+    try {
+      const userData = this.getCurrentUser();
+      if (!userData) throw new Error('No user logged in');
+      
+      userData.timeline = userData.timeline.filter(e => e.id !== entryId);
+      this.saveUserData(userData);
+    } catch (error) {
+      console.error('Error deleting timeline entry:', error);
+      throw error;
+    }
   }
   
   // Update About section
   updateAbout(about: AboutSection): void {
-    const userData = this.getCurrentUser();
-    if (!userData) throw new Error('No user logged in');
-    
-    userData.about = about;
-    this.saveUserData(userData);
+    try {
+      const userData = this.getCurrentUser();
+      if (!userData) throw new Error('No user logged in');
+      
+      userData.about = about;
+      this.saveUserData(userData);
+    } catch (error) {
+      console.error('Error updating about section:', error);
+      throw error;
+    }
   }
   
   // Update layout preferences
   updateLayoutPreferences(preferences: Partial<UserData['layoutPreferences']>): void {
-    const userData = this.getCurrentUser();
-    if (!userData) throw new Error('No user logged in');
-    
-    userData.layoutPreferences = {
-      ...userData.layoutPreferences,
-      ...preferences
-    };
-    
-    this.saveUserData(userData);
+    try {
+      const userData = this.getCurrentUser();
+      if (!userData) throw new Error('No user logged in');
+      
+      userData.layoutPreferences = {
+        ...userData.layoutPreferences,
+        ...preferences
+      };
+      
+      this.saveUserData(userData);
+    } catch (error) {
+      console.error('Error updating layout preferences:', error);
+      throw error;
+    }
   }
   
   // Image upload (to base64)
   async uploadImage(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          resolve(reader.result);
-        } else {
-          reject(new Error('Failed to convert image to base64'));
-        }
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
+      try {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result);
+          } else {
+            reject(new Error('Failed to convert image to base64'));
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        reject(error);
+      }
     });
   }
 }

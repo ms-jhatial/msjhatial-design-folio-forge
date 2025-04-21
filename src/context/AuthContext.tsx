@@ -9,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, email: string) => void;
   logout: () => void;
+  updateUserData: (data: UserData) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,14 +19,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
+  // Load user data from localStorage on initial mount
   useEffect(() => {
-    // Check for existing user data
-    const existingUser = storageService.getCurrentUser();
-    if (existingUser) {
-      setUserData(existingUser);
+    try {
+      // Check for existing user data
+      const existingUser = storageService.getCurrentUser();
+      if (existingUser) {
+        setUserData(existingUser);
+        console.log('User data loaded from localStorage:', existingUser);
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      toast({
+        title: "Error loading data",
+        description: "There was a problem loading your saved data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
-  }, []);
+  }, [toast]);
+
+  // Function to update user data in state and localStorage
+  const updateUserData = (data: UserData) => {
+    try {
+      setUserData(data);
+      storageService.saveUserData(data);
+    } catch (error) {
+      console.error('Error updating user data:', error);
+      toast({
+        title: "Save failed",
+        description: "There was an error saving your data.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const login = (username: string, email: string) => {
     try {
@@ -45,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Login failed",
         description: "There was an error logging in. Please try again.",
@@ -54,12 +83,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    storageService.clearUserData();
-    setUserData(null);
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
-    });
+    try {
+      storageService.clearUserData();
+      setUserData(null);
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out",
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout failed",
+        description: "There was an error logging out. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -70,6 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         logout,
+        updateUserData,
       }}
     >
       {children}

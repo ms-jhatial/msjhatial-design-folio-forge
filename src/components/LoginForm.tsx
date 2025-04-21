@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,24 +14,26 @@ const LoginForm: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  if (isAuthenticated) {
-    navigate('/dashboard');
-    return null;
-  }
+  // Check if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !email) {
+    if (!username || !username.trim()) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in all fields.",
+        title: "Missing name",
+        description: "Please enter your name.",
         variant: "destructive",
       });
       return;
     }
     
-    if (!email.includes('@')) {
+    if (!email || !email.includes('@')) {
       toast({
         title: "Invalid email",
         description: "Please enter a valid email address.",
@@ -40,9 +42,23 @@ const LoginForm: React.FC = () => {
       return;
     }
     
-    login(username, email);
-    navigate('/dashboard');
+    try {
+      login(username.trim(), email.trim());
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({
+        title: "Login failed",
+        description: "There was an error during login. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+  
+  // If already authenticated, don't render the form
+  if (isAuthenticated) {
+    return null;
+  }
   
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md">
