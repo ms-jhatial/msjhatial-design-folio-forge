@@ -9,6 +9,7 @@ import ImageUpload from '@/components/ImageUpload';
 import { useToast } from '@/components/ui/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import ReactMarkdown from 'react-markdown';
+import ProfilePreviewModal from './ProfilePreviewModal';
 
 const AboutTab: React.FC = () => {
   const { userData, updateUserData } = useAuth();
@@ -18,9 +19,10 @@ const AboutTab: React.FC = () => {
     layout: 'vertical'
   });
   const [preview, setPreview] = useState(false);
-  
+  const [modalOpen, setModalOpen] = useState(false);
+
   const { toast } = useToast();
-  
+
   // Load data on component mount
   useEffect(() => {
     console.log('AboutTab mounted, userData:', userData);
@@ -29,25 +31,25 @@ const AboutTab: React.FC = () => {
       setAbout(userData.about);
     }
   }, [userData]);
-  
+
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setAbout(prev => ({ ...prev, content: e.target.value }));
   };
-  
+
   const handleImageUploaded = (imageUrl: string) => {
     console.log('Image uploaded:', imageUrl);
     setAbout(prev => ({ ...prev, image: imageUrl }));
   };
-  
+
   const handleLayoutChange = (value: string) => {
     setAbout(prev => ({ ...prev, layout: value as 'vertical' | 'horizontal' | 'carousel' }));
   };
-  
+
   const handleSave = () => {
     try {
       console.log('Saving about data:', about);
       storageService.updateAbout(about);
-      
+
       // Also update the context
       if (userData) {
         const updatedUserData = {
@@ -56,7 +58,7 @@ const AboutTab: React.FC = () => {
         };
         updateUserData(updatedUserData);
       }
-      
+
       toast({
         title: "About section saved",
         description: "Your about section has been updated successfully."
@@ -70,23 +72,30 @@ const AboutTab: React.FC = () => {
       });
     }
   };
-  
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <ProfilePreviewModal open={modalOpen} onOpenChange={setModalOpen} about={about} />
+      <div className="flex flex-wrap justify-between items-center mb-6 gap-2">
         <h2 className="text-xl font-semibold">Edit About Section</h2>
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setModalOpen(true)}
+            type="button"
+          >
+            Preview Profile
+          </Button>
           <Button variant="outline" onClick={() => setPreview(!preview)}>
             {preview ? 'Edit' : 'Preview'}
           </Button>
           <Button onClick={handleSave}>Save Changes</Button>
         </div>
       </div>
-      
+
       {preview ? (
         <div className="border rounded-lg p-6">
           <h3 className="text-lg font-semibold mb-4">Preview</h3>
-          
           {about.layout === 'vertical' ? (
             <div>
               {about.image && (
@@ -157,7 +166,7 @@ const AboutTab: React.FC = () => {
               </div>
             </RadioGroup>
           </div>
-          
+
           <div>
             <Label htmlFor="image">Profile Image</Label>
             <ImageUpload
@@ -166,7 +175,7 @@ const AboutTab: React.FC = () => {
               className="mt-2"
             />
           </div>
-          
+
           <div>
             <Label htmlFor="content">About Content (Supports Markdown)</Label>
             <div className="text-xs text-muted-foreground mb-2">
@@ -181,7 +190,7 @@ const AboutTab: React.FC = () => {
               className="font-mono"
             />
           </div>
-          
+
           <div className="pt-4">
             <Button onClick={handleSave}>Save Changes</Button>
           </div>
@@ -192,3 +201,4 @@ const AboutTab: React.FC = () => {
 };
 
 export default AboutTab;
+
