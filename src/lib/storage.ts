@@ -100,7 +100,7 @@ const sampleData: UserData = {
     }
   ],
   about: {
-    content: '# About Me\n\nI am a passionate designer with a keen eye for detail and a love for creating meaningful digital experiences. With expertise in UI/UX design, branding, and visual communication, I help businesses connect with their audiences through thoughtful and intentional design.\n\n## My Approach\n\nI believe in user-centered design that not only looks beautiful but also solves real problems. Every project starts with deep research and understanding of the users' needs before moving into the creative process.',
+    content: "# About Me\n\nI am a passionate designer with a keen eye for detail and a love for creating meaningful digital experiences. With expertise in UI/UX design, branding, and visual communication, I help businesses connect with their audiences through thoughtful and intentional design.\n\n## My Approach\n\nI believe in user-centered design that not only looks beautiful but also solves real problems. Every project starts with deep research and understanding of the users' needs before moving into the creative process.",
     image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5',
     layout: 'vertical'
   },
