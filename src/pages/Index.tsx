@@ -4,10 +4,21 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import ProjectCard from '@/components/ProjectCard';
+import TimelineEntry from '@/components/TimelineEntry';
+import ReactMarkdown from 'react-markdown';
 
 const Index: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  
+  const { userData, isAuthenticated } = useAuth();
+
+  // Get up to 3 recent projects and timeline entries
+  const projects = userData?.projects?.slice(0, 3) || [];
+  const timelineEntries = userData?.timeline
+    ?.slice()
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 3) || [];
+  const about = userData?.about;
+
   return (
     <Layout>
       {/* Hero section */}
@@ -18,8 +29,8 @@ const Index: React.FC = () => {
               Build your design portfolio with ease
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Create, customize, and showcase your best work with 
-              <span className="text-brand-purple font-semibold"> msjhatial design</span>'s 
+              Create, customize, and showcase your best work with
+              <span className="text-brand-purple font-semibold"> msjhatial design</span>'s
               intuitive portfolio builder.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
@@ -54,7 +65,81 @@ const Index: React.FC = () => {
           </div>
         </div>
       </section>
-      
+
+      {/* Show uploaded user content previews */}
+      {isAuthenticated && userData && (
+        <section className="py-16 bg-background border-t border-b">
+          <div className="container mx-auto px-4 flex flex-col gap-16">
+            {/* About Section Preview */}
+            {about && (about.content || about.image) && (
+              <div className="flex flex-col md:flex-row items-center md:gap-8 gap-6">
+                {about.image && (
+                  <div className="w-full md:w-64 flex-shrink-0 mb-4 md:mb-0 flex justify-center">
+                    <img
+                      src={
+                        typeof about.image === "string"
+                          ? about.image
+                          : // fallback for old data structure
+                            (about.image?.value || "")
+                      }
+                      alt="Profile"
+                      className="rounded-lg object-cover w-40 h-40 md:w-56 md:h-56 shadow"
+                    />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold mb-2">About Me</h2>
+                  <div className="prose max-w-none prose-sm md:prose-lg line-clamp-6">
+                    <ReactMarkdown>{about.content}</ReactMarkdown>
+                  </div>
+                  <div className="mt-4">
+                    <Link to="/about">
+                      <Button size="sm" variant="outline">
+                        View Full About
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Portfolio Projects Preview */}
+            {projects && projects.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold">Recent Projects</h2>
+                  <Link to="/portfolio">
+                    <Button size="sm" variant="outline">View All</Button>
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {projects.map((project) => (
+                    <ProjectCard key={project.id} project={project} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Timeline Entries Preview */}
+            {timelineEntries && timelineEntries.length > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold">My Timeline</h2>
+                  <Link to="/timeline">
+                    <Button size="sm" variant="outline">View Full Timeline</Button>
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {timelineEntries.map((entry) => (
+                    <TimelineEntry key={entry.id} entry={entry} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Features section */}
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4">
@@ -174,3 +259,4 @@ const Index: React.FC = () => {
 };
 
 export default Index;
+
