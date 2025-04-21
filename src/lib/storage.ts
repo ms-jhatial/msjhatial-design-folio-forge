@@ -26,6 +26,14 @@ export interface TimelineEntry {
   createdAt: number;
 }
 
+export interface VideoItem {
+  id: string;
+  title: string;
+  description: string;
+  embedUrl: string;
+  thumbnailUrl: string;
+}
+
 export interface AboutSection {
   content: string;
   image: string;
@@ -36,6 +44,7 @@ export interface UserData {
   user: User;
   projects: Project[];
   timeline: TimelineEntry[];
+  videos: VideoItem[];
   about: AboutSection;
   layoutPreferences: {
     projectLayout: 'grid' | 'masonry' | 'carousel';
@@ -99,6 +108,22 @@ const sampleData: UserData = {
       createdAt: Date.now(),
     }
   ],
+  videos: [
+    {
+      id: 'video-1',
+      title: 'Brand Identity Showcase',
+      description: 'A video presentation of our recent brand identity project, showcasing the design process and final deliverables.',
+      embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868',
+    },
+    {
+      id: 'video-2',
+      title: 'UI/UX Design Process',
+      description: 'A walkthrough of our design process for mobile applications, from wireframing to final implementation.',
+      embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+      thumbnailUrl: 'https://images.unsplash.com/photo-1626785774573-4b799315345d',
+    }
+  ],
   about: {
     content: "# About Me\n\nI am a passionate designer with a keen eye for detail and a love for creating meaningful digital experiences. With expertise in UI/UX design, branding, and visual communication, I help businesses connect with their audiences through thoughtful and intentional design.\n\n## My Approach\n\nI believe in user-centered design that not only looks beautiful but also solves real problems. Every project starts with deep research and understanding of the users' needs before moving into the creative process.",
     image: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5',
@@ -140,6 +165,7 @@ class StorageService {
         user: newUser,
         projects: sampleData.projects,
         timeline: sampleData.timeline,
+        videos: sampleData.videos,
         about: sampleData.about,
         layoutPreferences: sampleData.layoutPreferences
       };
@@ -237,6 +263,21 @@ class StorageService {
       this.saveUserData(userData);
     } catch (error) {
       console.error('Error deleting project:', error);
+      throw error;
+    }
+  }
+  
+  // Update videos
+  updateVideos(videos: VideoItem[]): void {
+    try {
+      const userData = this.getCurrentUser();
+      if (!userData) throw new Error('No user logged in');
+      
+      userData.videos = videos;
+      this.saveUserData(userData);
+      console.log('Videos updated successfully', videos);
+    } catch (error) {
+      console.error('Error updating videos:', error);
       throw error;
     }
   }
