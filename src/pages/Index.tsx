@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -76,12 +75,7 @@ const Index: React.FC = () => {
                 {about.image && (
                   <div className="w-full md:w-64 flex-shrink-0 mb-4 md:mb-0 flex justify-center">
                     <img
-                      src={
-                        typeof about.image === "string"
-                          ? about.image
-                          : // fallback for old data structure
-                            (about.image?.value || "")
-                      }
+                      src={about.image}
                       alt="Profile"
                       className="rounded-lg object-cover w-40 h-40 md:w-56 md:h-56 shadow"
                     />
@@ -259,4 +253,3 @@ const Index: React.FC = () => {
 };
 
 export default Index;
-
