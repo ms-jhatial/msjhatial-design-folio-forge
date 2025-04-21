@@ -12,6 +12,7 @@ import Portfolio from "./pages/Portfolio";
 import Timeline from "./pages/Timeline";
 import About from "./pages/About";
 import NotFound from "./pages/NotFound";
+import React from "react";
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -23,10 +24,15 @@ const queryClient = new QueryClient({
   },
 });
 
+// Create a proper TooltipProvider wrapper
+const TooltipProviderWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return <TooltipProvider>{children}</TooltipProvider>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
+      <TooltipProviderWrapper>
         <Toaster />
         <Sonner />
         <BrowserRouter>
@@ -40,7 +46,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
+      </TooltipProviderWrapper>
     </AuthProvider>
   </QueryClientProvider>
 );

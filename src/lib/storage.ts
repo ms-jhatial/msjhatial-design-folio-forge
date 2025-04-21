@@ -118,6 +118,7 @@ class StorageService {
   getCurrentUser(): UserData | null {
     try {
       const currentUserJson = localStorage.getItem(this.storageKey);
+      console.log('Retrieved user data:', currentUserJson ? 'Found' : 'Not found');
       return currentUserJson ? JSON.parse(currentUserJson) : null;
     } catch (error) {
       console.error('Error getting user data from localStorage:', error);
@@ -144,6 +145,7 @@ class StorageService {
       };
       
       localStorage.setItem(this.storageKey, JSON.stringify(userData));
+      console.log('User created and data saved to localStorage');
       return userData;
     } catch (error) {
       console.error('Error creating user:', error);
@@ -305,6 +307,7 @@ class StorageService {
       
       userData.about = about;
       this.saveUserData(userData);
+      console.log('About section updated successfully', about);
     } catch (error) {
       console.error('Error updating about section:', error);
       throw error;

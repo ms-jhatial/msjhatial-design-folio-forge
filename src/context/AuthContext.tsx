@@ -43,6 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Function to update user data in state and localStorage
   const updateUserData = (data: UserData) => {
     try {
+      console.log('Updating user data in context:', data);
       setUserData(data);
       storageService.saveUserData(data);
     } catch (error) {
@@ -60,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const existingUser = storageService.getCurrentUser();
       if (existingUser) {
         setUserData(existingUser);
+        console.log('User logged in with existing data:', existingUser);
         toast({
           title: "Welcome back!",
           description: `Logged in as ${existingUser.user.username}`,
@@ -67,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         const newUserData = storageService.createUser(username, email);
         setUserData(newUserData);
+        console.log('New user created:', newUserData);
         toast({
           title: "Account created",
           description: "Your portfolio has been initialized with sample content",
@@ -86,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       storageService.clearUserData();
       setUserData(null);
+      console.log('User logged out');
       toast({
         title: "Logged out",
         description: "You have been successfully logged out",

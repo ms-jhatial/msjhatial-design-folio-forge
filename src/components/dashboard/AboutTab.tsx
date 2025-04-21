@@ -7,12 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import ImageUpload from '@/components/ImageUpload';
 import { useToast } from '@/components/ui/use-toast';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import ReactMarkdown from 'react-markdown';
 
 const AboutTab: React.FC = () => {
-  const { userData } = useAuth();
+  const { userData, updateUserData } = useAuth();
   const [about, setAbout] = useState<AboutSection>({
     content: '',
     image: '',
@@ -22,8 +21,11 @@ const AboutTab: React.FC = () => {
   
   const { toast } = useToast();
   
+  // Load data on component mount
   useEffect(() => {
+    console.log('AboutTab mounted, userData:', userData);
     if (userData) {
+      console.log('Setting about data:', userData.about);
       setAbout(userData.about);
     }
   }, [userData]);
@@ -33,6 +35,7 @@ const AboutTab: React.FC = () => {
   };
   
   const handleImageUploaded = (imageUrl: string) => {
+    console.log('Image uploaded:', imageUrl);
     setAbout(prev => ({ ...prev, image: imageUrl }));
   };
   
@@ -42,13 +45,24 @@ const AboutTab: React.FC = () => {
   
   const handleSave = () => {
     try {
+      console.log('Saving about data:', about);
       storageService.updateAbout(about);
+      
+      // Also update the context
+      if (userData) {
+        const updatedUserData = {
+          ...userData,
+          about: about
+        };
+        updateUserData(updatedUserData);
+      }
       
       toast({
         title: "About section saved",
         description: "Your about section has been updated successfully."
       });
     } catch (error) {
+      console.error('Error saving about section:', error);
       toast({
         title: "Error",
         description: "There was an error saving your about section.",
