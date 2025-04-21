@@ -82,6 +82,36 @@ const Portfolio: React.FC = () => {
                 <TabsTrigger value="projects">Projects</TabsTrigger>
                 <TabsTrigger value="videos">Videos</TabsTrigger>
               </TabsList>
+            
+              <TabsContent value="projects" className="pt-2">
+                {projects.length === 0 ? (
+                  <div className="text-center py-12">
+                    <h2 className="text-xl font-semibold mb-2">No projects yet</h2>
+                    <p className="text-muted-foreground mb-6">Add your first project from the dashboard.</p>
+                    <Link to="/dashboard">
+                      <Button>Go to Dashboard</Button>
+                    </Link>
+                  </div>
+                ) : layout === 'grid' ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {projects.map((project) => (
+                      <ProjectCard key={project.id} project={project} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
+                    {projects.map((project) => (
+                      <div key={project.id} className="break-inside-avoid">
+                        <ProjectCard project={project} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="videos" className="pt-2">
+                <VideoGallery videos={videos} />
+              </TabsContent>
             </Tabs>
             
             {activeTab === 'projects' && (
@@ -104,36 +134,6 @@ const Portfolio: React.FC = () => {
             )}
           </div>
         </div>
-        
-        <TabsContent value="projects" className="pt-2">
-          {projects.length === 0 ? (
-            <div className="text-center py-12">
-              <h2 className="text-xl font-semibold mb-2">No projects yet</h2>
-              <p className="text-muted-foreground mb-6">Add your first project from the dashboard.</p>
-              <Link to="/dashboard">
-                <Button>Go to Dashboard</Button>
-              </Link>
-            </div>
-          ) : layout === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-          ) : (
-            <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
-              {projects.map((project) => (
-                <div key={project.id} className="break-inside-avoid">
-                  <ProjectCard project={project} />
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="videos" className="pt-2">
-          <VideoGallery videos={videos} />
-        </TabsContent>
       </div>
     </Layout>
   );
