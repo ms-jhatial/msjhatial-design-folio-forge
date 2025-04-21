@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
@@ -6,9 +7,11 @@ import { useAuth } from '@/context/AuthContext';
 import ProjectCard from '@/components/ProjectCard';
 import TimelineEntry from '@/components/TimelineEntry';
 import ReactMarkdown from 'react-markdown';
+import ProfilePreviewModal from '@/components/ProfilePreviewModal';
 
 const Index: React.FC = () => {
   const { userData, isAuthenticated } = useAuth();
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Get up to 3 recent projects and timeline entries
   const projects = userData?.projects?.slice(0, 3) || [];
@@ -23,48 +26,78 @@ const Index: React.FC = () => {
       {/* Hero section */}
       <section className="py-20 md:py-32 bg-gradient-to-b from-brand-light to-background">
         <div className="container mx-auto px-4">
-          <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Build your design portfolio with ease
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Create, customize, and showcase your best work with
-              <span className="text-brand-purple font-semibold"> msjhatial design</span>'s
-              intuitive portfolio builder.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              {isAuthenticated ? (
-                <>
-                  <Link to="/dashboard">
-                    <Button size="lg" className="w-full sm:w-auto">
-                      Go to Dashboard
-                    </Button>
-                  </Link>
-                  <Link to="/portfolio">
-                    <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                      View Portfolio
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link to="/login">
-                    <Button size="lg" className="w-full sm:w-auto">
-                      Get Started
-                    </Button>
-                  </Link>
-                  <Link to="/portfolio">
-                    <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                      View Demo
-                    </Button>
-                  </Link>
-                </>
-              )}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between max-w-5xl mx-auto">
+            {/* Profile image on the left, visible for authenticated users with about.image */}
+            {isAuthenticated && about?.image && (
+              <div className="flex justify-center md:justify-start mb-6 md:mb-0 md:mr-10 md:w-1/3">
+                <img
+                  src={about.image}
+                  alt="Profile"
+                  className="rounded-lg shadow-xl object-cover w-40 h-40 md:w-56 md:h-56"
+                />
+              </div>
+            )}
+            {/* Hero content */}
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+                Build your design portfolio with ease
+              </h1>
+              <p className="text-xl text-muted-foreground mb-8">
+                Create, customize, and showcase your best work with
+                <span className="text-brand-purple font-semibold"> msjhatial design</span>'s
+                intuitive portfolio builder.
+              </p>
+              <div className="flex flex-col sm:flex-row md:justify-start justify-center gap-4">
+                {isAuthenticated ? (
+                  <>
+                    <Link to="/dashboard">
+                      <Button size="lg" className="w-full sm:w-auto">
+                        Go to Dashboard
+                      </Button>
+                    </Link>
+                    <Link to="/portfolio">
+                      <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                        View Portfolio
+                      </Button>
+                    </Link>
+                    {/* Profile Preview Button */}
+                    {about && (
+                      <>
+                        <Button
+                          size="lg"
+                          variant="ghost"
+                          className="w-full sm:w-auto border"
+                          onClick={() => setShowProfileModal(true)}
+                        >
+                          Preview Profile
+                        </Button>
+                        <ProfilePreviewModal
+                          open={showProfileModal}
+                          onOpenChange={setShowProfileModal}
+                          about={about}
+                        />
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login">
+                      <Button size="lg" className="w-full sm:w-auto">
+                        Get Started
+                      </Button>
+                    </Link>
+                    <Link to="/portfolio">
+                      <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                        View Demo
+                      </Button>
+                    </Link>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </section>
-
       {/* Show uploaded user content previews */}
       {isAuthenticated && userData && (
         <section className="py-16 bg-background border-t border-b">
