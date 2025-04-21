@@ -14,21 +14,6 @@ const ProfilePreviewModal: React.FC<ProfilePreviewModalProps> = ({
   onOpenChange,
   about,
 }) => {
-  // Handle image data that could be a string or an object with value property
-  const getImageSrc = () => {
-    if (!about.image) return null;
-    
-    // Handle both string format and object format with value property
-    if (typeof about.image === 'string') {
-      return about.image;
-    } else if (typeof about.image === 'object' && about.image._type === 'String') {
-      return about.image.value;
-    }
-    return null;
-  };
-
-  const imageSrc = getImageSrc();
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl p-0 md:max-w-2xl bg-background z-[999]">
@@ -36,10 +21,10 @@ const ProfilePreviewModal: React.FC<ProfilePreviewModalProps> = ({
           <DialogTitle className="text-center w-full">Profile Preview</DialogTitle>
         </DialogHeader>
         <div className="p-6 w-full">
-          {imageSrc && (
+          {about.image && (
             <div className="mb-4 flex justify-center">
               <img
-                src={imageSrc}
+                src={about.image}
                 alt="Profile"
                 className="w-full max-w-xs max-h-64 object-cover rounded-lg shadow"
               />
