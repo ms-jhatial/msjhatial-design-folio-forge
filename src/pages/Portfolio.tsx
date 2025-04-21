@@ -39,10 +39,14 @@ const Portfolio: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [layout, setLayout] = useState<'grid' | 'masonry'>('grid');
   const [activeTab, setActiveTab] = useState<'projects' | 'videos'>('projects');
+  const [videos, setVideos] = useState<VideoItem[]>(sampleVideos);
   
   useEffect(() => {
     if (userData) {
       setProjects(userData.projects);
+      if (userData.videos && userData.videos.length > 0) {
+        setVideos(userData.videos);
+      }
       setLayout(userData.layoutPreferences.projectLayout === 'carousel' 
         ? 'grid' 
         : userData.layoutPreferences.projectLayout);
@@ -128,7 +132,7 @@ const Portfolio: React.FC = () => {
         </TabsContent>
         
         <TabsContent value="videos" className="pt-2">
-          <VideoGallery videos={sampleVideos} />
+          <VideoGallery videos={videos} />
         </TabsContent>
       </div>
     </Layout>
