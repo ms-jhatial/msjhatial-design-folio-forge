@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import ImageUpload from '@/components/ImageUpload';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Edit, Trash, Video, Link as LinkIcon } from 'lucide-react';
+import { Video, Edit, Trash, Plus, Link } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -27,50 +27,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
+import VideoGallery from '../VideoGallery';
 
-const VideoGalleryTab: React.FC = () => {
-  const { userData } = useAuth();
+const VideoGalleryTab = () => {
+  const { userData, updateUserData } = useAuth();
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [currentVideo, setCurrentVideo] = useState<VideoItem | null>(null);
   const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
+  const [localVideo, setLocalVideo] = useState<File | null>(null);
   
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [embedUrl, setEmbedUrl] = useState('');
   const [thumbnailUrl, setThumbnailUrl] = useState('');
+  const [isLocal, setIsLocal] = useState(false);
   
   const { toast } = useToast();
   
   useEffect(() => {
-    if (userData && userData.videos) {
-      setVideos(userData.videos);
-    } else {
-      // Initialize with sample videos if user has none
-      const sampleVideos = [
-        {
-          id: 'video-1',
-          title: 'Brand Identity Showcase',
-          description: 'A video presentation of our recent brand identity project, showcasing the design process and final deliverables.',
-          embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-          thumbnailUrl: 'https://images.unsplash.com/photo-1611162616475-46b635cb6868',
-        },
-        {
-          id: 'video-2',
-          title: 'UI/UX Design Process',
-          description: 'A walkthrough of our design process for mobile applications, from wireframing to final implementation.',
-          embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-          thumbnailUrl: 'https://images.unsplash.com/photo-1626785774573-4b799315345d',
-        }
-      ];
-      setVideos(sampleVideos);
-      // Save the sample videos to user data
-      if (userData) {
-        storageService.updateVideos(sampleVideos);
-      }
+    if (userData) {
+      setVideos(userData.videos || []);
     }
   }, [userData]);
   
@@ -79,6 +60,8 @@ const VideoGalleryTab: React.FC = () => {
     setDescription('');
     setEmbedUrl('');
     setThumbnailUrl('');
+    setIsLocal(false);
+    setLocalVideo(null);
     setCurrentVideo(null);
     setEditMode(false);
   };
@@ -89,6 +72,7 @@ const VideoGalleryTab: React.FC = () => {
     setDescription(video.description);
     setEmbedUrl(video.embedUrl);
     setThumbnailUrl(video.thumbnailUrl);
+    setIsLocal(video.isLocal || false);
     setEditMode(true);
     setIsDialogOpen(true);
   };
@@ -99,18 +83,27 @@ const VideoGalleryTab: React.FC = () => {
   };
   
   const handleDeleteVideo = () => {
-    if (!videoToDelete) return;
+    if (!videoToDelete || !userData) return;
     
     try {
       const updatedVideos = videos.filter(v => v.id !== videoToDelete);
       setVideos(updatedVideos);
+      
+      // Update in userData
+      const updatedUserData = {
+        ...userData,
+        videos: updatedVideos
+      };
+      
+      updateUserData(updatedUserData);
       storageService.updateVideos(updatedVideos);
       
       toast({
         title: "Video deleted",
-        description: "The video has been successfully deleted."
+        description: "The video has been removed from your gallery."
       });
     } catch (error) {
+      console.error('Error deleting video:', error);
       toast({
         title: "Error",
         description: "Failed to delete the video.",
@@ -122,57 +115,100 @@ const VideoGalleryTab: React.FC = () => {
     setVideoToDelete(null);
   };
   
-  const handleSubmit = () => {
+  const handleLocalVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('video/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a video file.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Validate file size (max 50MB)
+    const maxSizeInBytes = 50 * 1024 * 1024;
+    if (file.size > maxSizeInBytes) {
+      toast({
+        title: "File too large",
+        description: "Please upload a video smaller than 50MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLocalVideo(file);
+    setIsLocal(true);
+    toast({
+      title: "Video selected",
+      description: "Video selected for upload."
+    });
+  };
+  
+  const handleSubmit = async () => {
+    if (!userData) return;
+    
     // Validate form
-    if (!title || !description || !embedUrl) {
+    if (!title || !description || (!embedUrl && !localVideo) || !thumbnailUrl) {
       toast({
         title: "Missing fields",
-        description: "Please fill in title, description, and embed URL.",
+        description: "Please fill in all required fields.",
         variant: "destructive"
       });
       return;
     }
     
     try {
+      let finalEmbedUrl = embedUrl;
+      
+      // If it's a local video, convert it to base64
+      if (isLocal && localVideo) {
+        finalEmbedUrl = await storageService.uploadVideo(localVideo);
+      }
+      
+      const newVideo: VideoItem = {
+        id: currentVideo?.id || storageService.generateId(),
+        title,
+        description,
+        embedUrl: finalEmbedUrl,
+        thumbnailUrl,
+        isLocal
+      };
+      
+      let updatedVideos: VideoItem[];
+      
       if (editMode && currentVideo) {
         // Update existing video
-        const updatedVideos = videos.map(v => 
-          v.id === currentVideo.id 
-            ? { ...v, title, description, embedUrl, thumbnailUrl } 
-            : v
-        );
-        
-        setVideos(updatedVideos);
-        storageService.updateVideos(updatedVideos);
-        
-        toast({
-          title: "Video updated",
-          description: "Your video has been updated successfully."
-        });
+        updatedVideos = videos.map(v => v.id === currentVideo.id ? newVideo : v);
       } else {
-        // Create new video
-        const newVideo: VideoItem = {
-          id: `video-${Date.now()}`,
-          title,
-          description,
-          embedUrl,
-          thumbnailUrl
-        };
-        
-        const updatedVideos = [newVideo, ...videos];
-        setVideos(updatedVideos);
-        storageService.updateVideos(updatedVideos);
-        
-        toast({
-          title: "Video added",
-          description: "Your new video has been added to your gallery."
-        });
+        // Add new video
+        updatedVideos = [newVideo, ...videos];
       }
+      
+      setVideos(updatedVideos);
+      
+      // Update in userData
+      const updatedUserData = {
+        ...userData,
+        videos: updatedVideos
+      };
+      
+      updateUserData(updatedUserData);
+      storageService.updateVideos(updatedVideos);
+      
+      toast({
+        title: editMode ? "Video updated" : "Video added",
+        description: editMode ? "Your video has been updated." : "Your video has been added to the gallery."
+      });
       
       // Close dialog and reset form
       setIsDialogOpen(false);
       resetForm();
     } catch (error) {
+      console.error('Error saving video:', error);
       toast({
         title: "Error",
         description: "There was an error saving your video.",
@@ -181,95 +217,27 @@ const VideoGalleryTab: React.FC = () => {
     }
   };
   
-  // Function to extract YouTube video ID
-  const extractYoutubeVideoId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  };
-  
-  // Handle YouTube URL paste to convert to embed URL
-  const handleYoutubeUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    const videoId = extractYoutubeVideoId(url);
-    
-    if (videoId) {
-      setEmbedUrl(`https://www.youtube.com/embed/${videoId}`);
-      // If no thumbnail is set, try to set a YouTube thumbnail
-      if (!thumbnailUrl) {
-        setThumbnailUrl(`https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`);
-      }
-    } else {
-      setEmbedUrl(url);
-    }
-  };
-  
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Manage Video Gallery</h2>
+        <h2 className="text-xl font-semibold">Manage Videos</h2>
         <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-2" /> Add Video
         </Button>
       </div>
       
-      {videos.length === 0 ? (
-        <div className="text-center py-12 border border-dashed rounded-lg">
-          <h3 className="text-lg font-medium mb-2">No videos yet</h3>
-          <p className="text-muted-foreground mb-4">Add your first video to showcase your work.</p>
-          <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-            <Plus className="h-4 w-4 mr-2" /> Add Video
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {videos.map(video => (
-            <div key={video.id} className="border rounded-lg overflow-hidden">
-              <div className="aspect-video overflow-hidden relative group">
-                {video.thumbnailUrl ? (
-                  <img 
-                    src={video.thumbnailUrl} 
-                    alt={video.title} 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                    <Video className="w-12 h-12 text-gray-400" />
-                  </div>
-                )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center">
-                    <div className="w-0 h-0 border-y-8 border-y-transparent border-l-12 border-l-primary ml-1" />
-                  </div>
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold">{video.title}</h3>
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{video.description}</p>
-                <div className="mt-4 flex space-x-2">
-                  <Button variant="outline" size="sm" onClick={() => handleEditVideo(video)}>
-                    <Edit className="h-4 w-4 mr-2" /> Edit
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDeleteConfirm(video.id)}>
-                    <Trash className="h-4 w-4 mr-2" /> Delete
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <VideoGallery videos={videos} />
       
       {/* Video Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>{editMode ? 'Edit Video' : 'Add New Video'}</DialogTitle>
+            <DialogTitle>{editMode ? 'Edit Video' : 'Add Video'}</DialogTitle>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div>
-              <Label htmlFor="title">Video Title</Label>
+              <Label htmlFor="title">Title</Label>
               <Input
                 id="title"
                 value={title}
@@ -284,49 +252,67 @@ const VideoGalleryTab: React.FC = () => {
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe your video"
-                rows={4}
+                placeholder="Describe this video"
+                rows={3}
               />
             </div>
             
-            <div>
-              <Label htmlFor="youtubeUrl">YouTube URL</Label>
-              <div className="flex items-center">
-                <LinkIcon className="h-4 w-4 mr-2 text-muted-foreground" />
-                <Input
-                  id="youtubeUrl"
-                  placeholder="Paste YouTube URL (will be converted to embed URL)"
-                  onChange={handleYoutubeUrlChange}
-                />
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="videoType"
+                checked={isLocal}
+                onCheckedChange={setIsLocal}
+              />
+              <Label htmlFor="videoType">Upload local video file</Label>
+            </div>
+            
+            {isLocal ? (
+              <div>
+                <Label htmlFor="videoFile">Video File</Label>
+                <div className="mt-2">
+                  <Input
+                    id="videoFile"
+                    type="file"
+                    accept="video/*"
+                    onChange={handleLocalVideoUpload}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    MP4, WebM or MOV format, up to 50MB
+                  </p>
+                </div>
+                {localVideo && (
+                  <div className="mt-2 p-2 bg-muted rounded text-sm">
+                    Selected: {localVideo.name} ({Math.round(localVideo.size / 1024 / 1024 * 10) / 10} MB)
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Paste a YouTube video URL to automatically generate the embed URL
-              </p>
-            </div>
+            ) : (
+              <div>
+                <Label htmlFor="embedUrl">Video URL</Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="embedUrl"
+                    value={embedUrl}
+                    onChange={(e) => setEmbedUrl(e.target.value)}
+                    placeholder="e.g. https://www.youtube.com/embed/videoID"
+                    className="pl-9"
+                  />
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  YouTube embed URL or other iframe compatible video source
+                </p>
+              </div>
+            )}
             
             <div>
-              <Label htmlFor="embedUrl">Embed URL</Label>
-              <Input
-                id="embedUrl"
-                value={embedUrl}
-                onChange={(e) => setEmbedUrl(e.target.value)}
-                placeholder="e.g., https://www.youtube.com/embed/VIDEO_ID"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                The embed URL for your video (automatically generated from YouTube URL)
-              </p>
-            </div>
-            
-            <div>
-              <Label>Thumbnail</Label>
+              <Label htmlFor="thumbnailImage">Thumbnail Image</Label>
               <ImageUpload
                 onImageUploaded={setThumbnailUrl}
                 currentImage={thumbnailUrl}
                 className="mt-2"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                Custom thumbnail for your video (if not provided, YouTube thumbnail will be used)
-              </p>
             </div>
           </div>
           

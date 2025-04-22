@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   username: string;
@@ -31,6 +32,7 @@ export interface VideoItem {
   description: string;
   embedUrl: string;
   thumbnailUrl: string;
+  isLocal?: boolean;
 }
 
 export interface AboutSection {
@@ -137,6 +139,32 @@ const sampleData: UserData = {
 
 class StorageService {
   private storageKey = 'msjhatial-design-data';
+  private autoSaveDebounceTimeout: number | null = null;
+  
+  constructor() {
+    // Attempt to recover session on initialization
+    this.checkSessionRecovery();
+  }
+  
+  // Check for any pending session to recover
+  private checkSessionRecovery(): void {
+    try {
+      const currentUserJson = localStorage.getItem(this.storageKey);
+      if (currentUserJson) {
+        // Session exists, nothing to recover
+        console.log('Existing session found');
+      } else {
+        // Check if there's a backup session to recover
+        const backupJson = localStorage.getItem(`${this.storageKey}-backup`);
+        if (backupJson) {
+          console.log('Recovering data from backup');
+          localStorage.setItem(this.storageKey, backupJson);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking session recovery:', error);
+    }
+  }
   
   // Get current user data
   getCurrentUser(): UserData | null {
@@ -146,6 +174,18 @@ class StorageService {
       return currentUserJson ? JSON.parse(currentUserJson) : null;
     } catch (error) {
       console.error('Error getting user data from localStorage:', error);
+      
+      // Try to recover from backup
+      try {
+        const backupJson = localStorage.getItem(`${this.storageKey}-backup`);
+        if (backupJson) {
+          console.log('Recovering data from backup after retrieval error');
+          return JSON.parse(backupJson);
+        }
+      } catch {
+        // Backup recovery failed too
+      }
+      
       return null;
     }
   }
@@ -169,7 +209,11 @@ class StorageService {
         layoutPreferences: sampleData.layoutPreferences
       };
       
+      // Save main data
       localStorage.setItem(this.storageKey, JSON.stringify(userData));
+      // Create backup
+      localStorage.setItem(`${this.storageKey}-backup`, JSON.stringify(userData));
+      
       console.log('User created and data saved to localStorage');
       return userData;
     } catch (error) {
@@ -181,8 +225,21 @@ class StorageService {
   // Save user data
   saveUserData(userData: UserData): void {
     try {
+      // Create a debounced backup
+      if (this.autoSaveDebounceTimeout) {
+        window.clearTimeout(this.autoSaveDebounceTimeout);
+      }
+      
+      // Save main data immediately
       localStorage.setItem(this.storageKey, JSON.stringify(userData));
       console.log('User data saved to localStorage');
+      
+      // Debounce backup creation to reduce writes
+      this.autoSaveDebounceTimeout = window.setTimeout(() => {
+        localStorage.setItem(`${this.storageKey}-backup`, JSON.stringify(userData));
+        console.log('Backup created');
+        this.autoSaveDebounceTimeout = null;
+      }, 5000);
     } catch (error) {
       console.error('Error saving user data to localStorage:', error);
       throw new Error('Failed to save user data');
@@ -193,6 +250,7 @@ class StorageService {
   clearUserData(): void {
     try {
       localStorage.removeItem(this.storageKey);
+      localStorage.removeItem(`${this.storageKey}-backup`);
     } catch (error) {
       console.error('Error clearing user data from localStorage:', error);
       throw new Error('Failed to clear user data');
@@ -391,6 +449,38 @@ class StorageService {
         reject(error);
       }
     });
+  }
+  
+  // Video upload (to base64)
+  async uploadVideo(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      try {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result);
+          } else {
+            reject(new Error('Failed to convert video to base64'));
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error uploading video:', error);
+        reject(error);
+      }
+    });
+  }
+  
+  // Method to handle bulk image uploads
+  async uploadMultipleImages(files: File[]): Promise<string[]> {
+    try {
+      const uploadPromises = files.map(file => this.uploadImage(file));
+      return await Promise.all(uploadPromises);
+    } catch (error) {
+      console.error('Error uploading multiple images:', error);
+      throw error;
+    }
   }
 }
 

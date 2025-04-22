@@ -28,9 +28,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ProjectsTab: React.FC = () => {
-  const { userData, isAuthenticated } = useAuth();
+  const { userData, updateUserData } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -80,13 +81,20 @@ const ProjectsTab: React.FC = () => {
   };
   
   const handleDeleteProject = () => {
-    if (!projectToDelete) return;
+    if (!projectToDelete || !userData) return;
     
     try {
       storageService.deleteProject(projectToDelete);
       
       // Update local state
-      setProjects(prev => prev.filter(p => p.id !== projectToDelete));
+      const updatedProjects = projects.filter(p => p.id !== projectToDelete);
+      setProjects(updatedProjects);
+      
+      // Update global state
+      updateUserData({
+        ...userData,
+        projects: updatedProjects
+      });
       
       toast({
         title: "Project deleted",
@@ -105,6 +113,8 @@ const ProjectsTab: React.FC = () => {
   };
   
   const handleSubmit = () => {
+    if (!userData) return;
+    
     // Validate form
     if (!title || !description || !date || !coverImage) {
       toast({
@@ -119,9 +129,12 @@ const ProjectsTab: React.FC = () => {
     const finalProjectImages = projectImages.length > 0 ? projectImages : [coverImage];
     
     try {
+      let updatedProject: Project;
+      let updatedProjects: Project[];
+      
       if (editMode && currentProject) {
         // Update existing project
-        storageService.updateProject(currentProject.id, {
+        updatedProject = storageService.updateProject(currentProject.id, {
           title,
           description,
           date,
@@ -130,11 +143,9 @@ const ProjectsTab: React.FC = () => {
         });
         
         // Update local state
-        setProjects(prev => prev.map(p => 
-          p.id === currentProject.id 
-            ? { ...p, title, description, date, coverImage, images: finalProjectImages, updatedAt: Date.now() } 
-            : p
-        ));
+        updatedProjects = projects.map(p => 
+          p.id === currentProject.id ? updatedProject : p
+        );
         
         toast({
           title: "Project updated",
@@ -142,7 +153,7 @@ const ProjectsTab: React.FC = () => {
         });
       } else {
         // Create new project
-        const newProject = storageService.saveProject({
+        updatedProject = storageService.saveProject({
           title,
           description,
           date,
@@ -151,13 +162,21 @@ const ProjectsTab: React.FC = () => {
         });
         
         // Update local state
-        setProjects(prev => [newProject, ...prev]);
+        updatedProjects = [updatedProject, ...projects];
         
         toast({
           title: "Project added",
           description: "Your new project has been added to your portfolio."
         });
       }
+      
+      setProjects(updatedProjects);
+      
+      // Update global state
+      updateUserData({
+        ...userData,
+        projects: updatedProjects
+      });
       
       // Close dialog and reset form
       setIsDialogOpen(false);
@@ -171,25 +190,14 @@ const ProjectsTab: React.FC = () => {
     }
   };
   
-  const handleAddImage = (imageUrl: string) => {
-    if (imageUrl && !projectImages.includes(imageUrl)) {
-      setProjectImages(prev => [...prev, imageUrl]);
-    }
-  };
-  
-  const handleRemoveImage = (index: number) => {
-    setProjectImages(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Use cover image as first project image if no other images
   const handleSetCoverImage = (imageUrl: string) => {
     setCoverImage(imageUrl);
-    // If it's the first image, also add it to project images
-    if (projectImages.length === 0) {
-      setProjectImages([imageUrl]);
-    }
   };
   
+  const handleMultipleImagesUploaded = (imageUrls: string[]) => {
+    setProjectImages(imageUrls);
+  };
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -210,8 +218,8 @@ const ProjectsTab: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map(project => (
-            <div key={project.id} className="border rounded-lg overflow-hidden">
-              <div className="aspect-square overflow-hidden">
+            <div key={project.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <div className="aspect-video overflow-hidden bg-muted">
                 <img 
                   src={project.coverImage} 
                   alt={project.title} 
@@ -219,12 +227,24 @@ const ProjectsTab: React.FC = () => {
                 />
               </div>
               <div className="p-4">
-                <h3 className="font-semibold">{project.title}</h3>
-                <p className="text-sm text-muted-foreground">{project.date}</p>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-semibold">{project.title}</h3>
+                    <p className="text-sm text-muted-foreground">{project.date}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEditProject(project)}>
+                      <Edit className="h-4 w-4 mr-2" /> Edit
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteConfirm(project.id)}>
+                      <Trash className="h-4 w-4 mr-2" /> Delete
+                    </Button>
+                  </div>
+                </div>
                 <div className="mt-2">
                   <p className="text-sm text-muted-foreground line-clamp-2">{project.description}</p>
                 </div>
-                <div className="mt-4 flex justify-between">
+                <div className="mt-4 flex justify-between items-center">
                   <div className="flex -space-x-2">
                     {project.images.slice(0, 3).map((image, index) => (
                       <div key={index} className="w-8 h-8 rounded-full border-2 border-background overflow-hidden">
@@ -237,14 +257,9 @@ const ProjectsTab: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEditProject(project)}>
-                      <Edit className="h-4 w-4 mr-2" /> Edit
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDeleteConfirm(project.id)}>
-                      <Trash className="h-4 w-4 mr-2" /> Delete
-                    </Button>
-                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    Updated {new Date(project.updatedAt).toLocaleDateString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -254,109 +269,101 @@ const ProjectsTab: React.FC = () => {
       
       {/* Project Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>{editMode ? 'Edit Project' : 'Add New Project'}</DialogTitle>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div>
-                <Label htmlFor="title">Project Title</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter project title"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe your project"
-                  rows={4}
-                />
-              </div>
-              
-              <div>
-                <Label className="mb-2 block">Cover Image</Label>
-                <ImageUpload
-                  onImageUploaded={handleSetCoverImage}
-                  currentImage={coverImage}
-                  className="mt-2"
-                />
-              </div>
-              
-              <div>
-                <Label className="mb-2 block">Project Images</Label>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Add multiple images to showcase your project.
-                </p>
+          <ScrollArea className="h-[calc(90vh-180px)]">
+            <div className="grid gap-4 py-4 px-6">
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <Label htmlFor="title">Project Title</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter project title"
+                  />
+                </div>
                 
-                {projectImages.length > 0 ? (
-                  <div className="mb-6">
-                    <Carousel className="w-full max-w-sm mx-auto">
-                      <CarouselContent>
-                        {projectImages.map((image, index) => (
-                          <CarouselItem key={index}>
-                            <div className="relative group p-1">
-                              <img
-                                src={image}
-                                alt={`Project image ${index + 1}`}
-                                className="aspect-square object-cover rounded-md w-full"
-                              />
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => handleRemoveImage(index)}
-                              >
-                                <Trash className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      <div className="flex justify-center items-center gap-2 mt-2">
-                        <CarouselPrevious className="relative static transform-none" />
-                        <span className="text-sm text-muted-foreground">
-                          {projectImages.length} image{projectImages.length !== 1 ? 's' : ''}
-                        </span>
-                        <CarouselNext className="relative static transform-none" />
-                      </div>
-                    </Carousel>
-                  </div>
-                ) : (
-                  <div className="text-center p-6 border border-dashed rounded-md mb-4">
-                    <ImageIcon className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">No project images added yet</p>
-                  </div>
-                )}
+                <div>
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                </div>
                 
-                <div className="mt-4">
-                  <Label htmlFor="addMoreImages">Add More Images</Label>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe your project"
+                    rows={4}
+                  />
+                </div>
+                
+                <div>
+                  <Label className="mb-2 block">Cover Image</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    This will be the main image shown in your portfolio.
+                  </p>
                   <ImageUpload
-                    onImageUploaded={handleAddImage}
+                    onImageUploaded={handleSetCoverImage}
+                    currentImage={coverImage}
                     className="mt-2"
                   />
                 </div>
+                
+                <div>
+                  <Label className="mb-2 block">Project Gallery</Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Add multiple images to showcase your project in detail.
+                  </p>
+                  
+                  <ImageUpload
+                    multiple
+                    onMultipleImagesUploaded={handleMultipleImagesUploaded}
+                    className="mt-2"
+                    maxImages={10}
+                  />
+                  
+                  {projectImages.length > 0 && (
+                    <div className="mt-4">
+                      <Label>Gallery Preview</Label>
+                      <Carousel className="w-full max-w-sm mx-auto mt-2">
+                        <CarouselContent>
+                          {projectImages.map((image, index) => (
+                            <CarouselItem key={index}>
+                              <div className="p-1">
+                                <img
+                                  src={image}
+                                  alt={`Project image ${index + 1}`}
+                                  className="aspect-video object-cover rounded-md w-full"
+                                />
+                              </div>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <div className="flex justify-center gap-2 mt-2">
+                          <CarouselPrevious />
+                          <span className="text-sm text-muted-foreground">
+                            {projectImages.length} image{projectImages.length !== 1 ? 's' : ''}
+                          </span>
+                          <CarouselNext />
+                        </div>
+                      </Carousel>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          </ScrollArea>
           
           <DialogFooter>
             <DialogClose asChild>
