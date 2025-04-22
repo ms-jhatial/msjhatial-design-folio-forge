@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Image, Upload, X, Plus, FileImage } from 'lucide-react';
@@ -33,7 +32,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const isMobile = useIsMobile();
 
   const validateFile = (file: File): boolean => {
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Invalid file type",
@@ -43,7 +41,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       return false;
     }
 
-    // Validate file size (max 5MB)
     const maxSizeInBytes = 5 * 1024 * 1024;
     if (file.size > maxSizeInBytes) {
       toast({
@@ -97,10 +94,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const handleMultipleFileUpload = async (files: FileList) => {
     if (!onMultipleImagesUploaded) return;
     
-    // Convert FileList to array for easier processing
     const fileArray = Array.from(files);
     
-    // Check max images limit
     if (fileArray.length > maxImages) {
       toast({
         title: "Too many files",
@@ -110,7 +105,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       return;
     }
     
-    // Validate all files first
     const validFiles = fileArray.filter(validateFile);
     
     if (validFiles.length === 0) return;
@@ -124,7 +118,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       
       setUploadProgress(30);
       
-      // Process in batches to not block the UI
       const results: string[] = [];
       const batchSize = 3;
       
@@ -133,7 +126,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         const batchResults = await Promise.all(batch);
         results.push(...batchResults);
         
-        // Update progress
         const progressPercent = Math.min(90, 30 + (60 * (i + batch.length) / uploadPromises.length));
         setUploadProgress(progressPercent);
       }
@@ -193,7 +185,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     onMultipleImagesUploaded(updatedUrls);
   };
 
-  // Display progress overlay if uploading
   const renderProgressOverlay = () => {
     if (!isUploading || uploadProgress === 0) return null;
     
@@ -241,7 +232,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
               </div>
             ))}
             
-            {/* Add more button */}
             {multiplePreviewUrls.length > 0 && multiplePreviewUrls.length < maxImages && (
               <button
                 className="h-24 w-24 flex flex-col items-center justify-center border border-dashed border-muted-foreground rounded-md hover:bg-accent transition-colors"
@@ -275,7 +265,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
           {renderProgressOverlay()}
         </div>
       ) : (
-        // Single image upload
         <div className="relative">
           {previewUrl ? (
             <div className="relative group">

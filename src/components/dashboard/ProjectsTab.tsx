@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { storageService, Project } from '@/lib/storage';
@@ -39,7 +38,6 @@ const ProjectsTab: React.FC = () => {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   
-  // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState('');
@@ -86,11 +84,9 @@ const ProjectsTab: React.FC = () => {
     try {
       storageService.deleteProject(projectToDelete);
       
-      // Update local state
       const updatedProjects = projects.filter(p => p.id !== projectToDelete);
       setProjects(updatedProjects);
       
-      // Update global state
       updateUserData({
         ...userData,
         projects: updatedProjects
@@ -115,7 +111,6 @@ const ProjectsTab: React.FC = () => {
   const handleSubmit = () => {
     if (!userData) return;
     
-    // Validate form
     if (!title || !description || !date || !coverImage) {
       toast({
         title: "Missing fields",
@@ -125,7 +120,6 @@ const ProjectsTab: React.FC = () => {
       return;
     }
     
-    // Ensure at least one project image (can be the same as cover image)
     const finalProjectImages = projectImages.length > 0 ? projectImages : [coverImage];
     
     try {
@@ -133,7 +127,6 @@ const ProjectsTab: React.FC = () => {
       let updatedProjects: Project[];
       
       if (editMode && currentProject) {
-        // Update existing project
         updatedProject = storageService.updateProject(currentProject.id, {
           title,
           description,
@@ -142,7 +135,6 @@ const ProjectsTab: React.FC = () => {
           images: finalProjectImages
         });
         
-        // Update local state
         updatedProjects = projects.map(p => 
           p.id === currentProject.id ? updatedProject : p
         );
@@ -152,7 +144,6 @@ const ProjectsTab: React.FC = () => {
           description: "Your project has been updated successfully."
         });
       } else {
-        // Create new project
         updatedProject = storageService.saveProject({
           title,
           description,
@@ -161,7 +152,6 @@ const ProjectsTab: React.FC = () => {
           images: finalProjectImages
         });
         
-        // Update local state
         updatedProjects = [updatedProject, ...projects];
         
         toast({
@@ -172,13 +162,11 @@ const ProjectsTab: React.FC = () => {
       
       setProjects(updatedProjects);
       
-      // Update global state
       updateUserData({
         ...userData,
         projects: updatedProjects
       });
       
-      // Close dialog and reset form
       setIsDialogOpen(false);
       resetForm();
     } catch (error) {
@@ -196,6 +184,9 @@ const ProjectsTab: React.FC = () => {
   
   const handleMultipleImagesUploaded = (imageUrls: string[]) => {
     setProjectImages(imageUrls);
+  };
+
+  const handleDummyImageUploaded = (imageUrl: string) => {
   };
 
   return (
@@ -267,7 +258,6 @@ const ProjectsTab: React.FC = () => {
         </div>
       )}
       
-      {/* Project Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh]">
           <DialogHeader>
@@ -328,6 +318,7 @@ const ProjectsTab: React.FC = () => {
                   
                   <ImageUpload
                     multiple
+                    onImageUploaded={handleDummyImageUploaded}
                     onMultipleImagesUploaded={handleMultipleImagesUploaded}
                     className="mt-2"
                     maxImages={10}
@@ -374,7 +365,6 @@ const ProjectsTab: React.FC = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
